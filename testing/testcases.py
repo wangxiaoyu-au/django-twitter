@@ -33,5 +33,5 @@ class TestCase(DjangoTestCase):
         return Comment.objects.create(
             user=user,
             tweet=tweet,
-            content=content,
+            content=content
         )

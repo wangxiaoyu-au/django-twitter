@@ -20,6 +20,33 @@ class CommentApiTests(TestCase):
 
         self.tweet = self.create_tweet(self.pluto)
 
+    def test_list(self):
+        # tweet_id must be claimed
+        response = self.anonymous_client.get(COMMENT_URL)
+        self.assertEqual(response.status_code, 400)
+        # no comment in the first place
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 0)
+        # created comments in time order
+        self.create_comment(self.pluto, self.tweet, '1')
+        self.create_comment(self.brunch, self.tweet, '2')
+        self.create_comment(self.brunch, self.create_tweet(self.brunch), '3')
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+        })
+        self.assertEqual(len(response.data['comments']), 2)
+        self.assertEqual(response.data['comments'][0]['content'], '1')
+        self.assertEqual(response.data['comments'][1]['content'], '2')
+        # if both tweet_id and user_id are provided, only tweet_id works in filter
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+            'user_id': self.pluto.id,
+        })
+        self.assertEqual(len(response.data['comments']), 2)
+
     def test_create(self):
         # logged in is mandated
         response = self.anonymous_client.post(COMMENT_URL)

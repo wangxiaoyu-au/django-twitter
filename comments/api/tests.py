@@ -6,18 +6,16 @@ from django.utils import timezone
 
 COMMENT_URL = '/api/comments/'
 COMMENT_DETAIL_URL = '/api/comments/{}/'
+TWEET_LIST_API = '/api/tweets/'
+TWEET_DETAIL_API = '/api/tweets/{}/'
+NEWSFEED_LIST_API = '/api/newsfeeds/'
 
 
 class CommentApiTests(TestCase):
 
     def setUp(self):
-        self.pluto = self.create_user('pluto')
-        self.pluto_client = APIClient()
-        self.pluto_client.force_authenticate(self.pluto)
-        self.brunch = self.create_user('brunch')
-        self.brunch_client = APIClient()
-        self.brunch_client.force_authenticate(self.brunch)
-
+        self.pluto, self.pluto_client = self.create_user_and_client('pluto')
+        self.brunch, self.brunch_client = self.create_user_and_client('brunch')
         self.tweet = self.create_tweet(self.pluto)
 
     def test_list(self):
@@ -123,6 +121,27 @@ class CommentApiTests(TestCase):
         self.assertEqual(comment.created_at, before_created_at)
         self.assertNotEqual(comment.created_at, now)
         self.assertNotEqual(comment.updated_at, before_updated_at)
+
+    def test_comments_count(self):
+        # test tweet detail api
+        tweet = self.create_tweet(self.pluto)
+        url = TWEET_DETAIL_API.format(tweet.id)
+        response = self.brunch_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 0)
+
+        # test tweet list api
+        self.create_comment(self.pluto, tweet)
+        response = self.brunch_client.get(TWEET_LIST_API, {'user_id': self.pluto.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['tweets'][0]['comments_count'], 1)
+
+        # test newsfeed list api
+        self.create_comment(self.brunch, tweet)
+        self.create_newsfeed(self.brunch, tweet)
+        response = self.brunch_client.get(NEWSFEED_LIST_API)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['newsfeeds'][0]['tweet']['comments_count'], 2)
 
 
 

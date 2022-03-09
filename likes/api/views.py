@@ -1,4 +1,5 @@
 from likes.models import Like
+from inbox.services import NotificationService
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -16,7 +17,7 @@ class LikeViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = LikeSerializerForCreate
 
-    @required_params(request_attr='data', params=['content_type', 'object_id'])
+    @required_params(method='POST', params=['content_type', 'object_id'])
     def create(self, request, *args, **kwargs):
         serializer = LikeSerializerForCreate(
             data=request.data,
@@ -27,13 +28,15 @@ class LikeViewSet(viewsets.GenericViewSet):
                 'message': 'Please check input',
                 'errors': serializer.errors,
             }, status=status.HTTP_400_BAD_REQUEST)
-        instance = serializer.save()
+        instance, created = serializer.get_or_create()
+        if created:
+            NotificationService.send_like_notification(instance)
         return Response(
             LikeSerializer(instance).data,
             status=status.HTTP_201_CREATED,
         )
 
-    @required_params(request_attr='data', params=['content_type', 'object_id'])
+    @required_params(method='POST', params=['content_type', 'object_id'])
     @action(methods=['POST'], detail=False)
     def cancel(self, request, *args, **kwargs):
         serializer = LikeSerializerForCancel(

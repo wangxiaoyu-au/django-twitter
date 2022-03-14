@@ -23,6 +23,7 @@ from friendships.api.views import FriendshipViewSet
 from newsfeeds.api.views import NewsFeedViewSet
 from comments.api.views import CommentViewSet
 from likes.api.views import LikeViewSet
+from inbox.api.views import NotificationViewSet
 from django.conf import settings
 
 # import debug_toolbar
@@ -37,6 +38,7 @@ router.register(r'api/newsfeeds', NewsFeedViewSet, basename='newsfeeds')
 router.register(r'api/newsfeeds', NewsFeedViewSet, basename='newsfeeds')
 router.register(r'api/comments', CommentViewSet, basename='comments')
 router.register(r'api/likes', LikeViewSet, basename='likes')
+router.register(r'api/notifications', NotificationViewSet, basename='notifications')
 
 
 urlpatterns = [

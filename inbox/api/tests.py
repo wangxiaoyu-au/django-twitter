@@ -120,6 +120,56 @@ class NotificationApiTests(TestCase):
         response = self.pluto_client.get(NOTIFICATION_URL, {'unread': False})
         self.assertEqual(response.data['count'], 1)
 
+    def test_update(self):
+        self.brunch_client.post(LIKE_URL, {
+            'content_type': 'tweet',
+            'object_id': self.pluto_tweet.id,
+        })
+        comment = self.create_comment(self.pluto, self.pluto_tweet)
+        self.brunch_client.post(LIKE_URL, {
+            'content_type': 'comment',
+            'object_id': comment.id,
+        })
+        notification = self.pluto.notifications.first()
+
+        url = '/api/notifications/{}/'.format(notification.id)
+
+        # action method should be PUT not POST
+        response = self.pluto_client.post(url, {'unread': False})
+        self.assertEqual(response.status_code, 405)
+        # updated by anonymous is forbidden
+        response = self.anonymous_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 403)
+        # updated by other users would fail in filtering step,
+        # get_object() would return 404
+        response = self.brunch_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 404)
+
+        # updated successfully
+        response = self.pluto_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 200)
+        unread_url = '/api/notifications/unread-count/'
+        response = self.pluto_client.get(unread_url)
+        self.assertEqual(response.data['unread_count'], 1)
+        # reversely verification
+        response = self.pluto_client.put(url, {'unread': True})
+        response = self.pluto_client.get(unread_url)
+        self.assertEqual(response.data['unread_count'], 2)
+
+        # unread field must be included
+        response = self.pluto_client.put(url, {'verb': 'new verb'})
+        self.assertEqual(response.status_code, 400)
+        # only unread field can be updated
+        response = self.pluto_client.put(url, {'verb': 'new verb', 'unread': False})
+        self.assertEqual(response.status_code, 200)
+        notification.refresh_from_db()
+        self.assertNotEqual(notification.verb, 'new verb')
+
+
+
+
+
+
 
 
 

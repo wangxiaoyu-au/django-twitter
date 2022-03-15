@@ -1,6 +1,7 @@
 from testing.testcases import TestCase
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
+from accounts.models import UserProfile
 
 
 LOGIN_URL = '/api/accounts/login/'
@@ -121,6 +122,11 @@ class AccountApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['user']['username'], 'someone')
         self.assertEqual(response.data['user']['email'], 'someone@twitter.com')
+
+        # verify user profile has been created
+        created_user_username = response.data['user']['username']
+        profile = UserProfile.objects.filter(user__username=created_user_username).first()
+        self.assertNotEqual(profile, None)
 
         # after a successful signup, the user has logged in
         response = self.client.get(LOGIN_STATUS_URL)

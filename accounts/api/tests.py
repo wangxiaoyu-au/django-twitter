@@ -1,13 +1,14 @@
 from testing.testcases import TestCase
 from rest_framework.test import APIClient
-from django.contrib.auth.models import User
 from accounts.models import UserProfile
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 
 LOGIN_URL = '/api/accounts/login/'
 LOGOUT_URL = '/api/accounts/logout/'
 SIGNUP_URL = '/api/accounts/signup/'
 LOGIN_STATUS_URL = '/api/accounts/login_status/'
+USER_PROFILE_DETAIL_URL = '/api/profiles/{}/'
 
 
 class AccountApiTests(TestCase):
@@ -53,7 +54,7 @@ class AccountApiTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.data['user'], None)
-        self.assertEqual(response.data['user']['email'], 'administer@twitter.com')
+        self.assertEqual(response.data['user']['id'], self.user.id)
 
         # has logged in successfully
         response = self.client.get(LOGIN_STATUS_URL)
@@ -121,16 +122,67 @@ class AccountApiTests(TestCase):
         response = self.client.post(SIGNUP_URL, data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['user']['username'], 'someone')
-        self.assertEqual(response.data['user']['email'], 'someone@twitter.com')
 
         # verify user profile has been created
         created_user_username = response.data['user']['username']
         profile = UserProfile.objects.filter(user__username=created_user_username).first()
         self.assertNotEqual(profile, None)
+        created_user_id = response.data['user']['id']
+        profile = UserProfile.objects.filter(user_id=created_user_id).first()
+        self.assertNotEqual(profile, None)
 
         # after a successful signup, the user has logged in
         response = self.client.get(LOGIN_STATUS_URL)
         self.assertEqual(response.data['has_logged_in'], True)
+
+
+class UserProfileAPITests(TestCase):
+
+    def test_update(self):
+        pluto, pluto_client = self.create_user_and_client('pluto')
+        pluto_pf = pluto.profile
+        pluto_pf.nickname = 'old nickname'
+        pluto_pf.save()
+        url = USER_PROFILE_DETAIL_URL.format(pluto_pf.id)
+
+        # profile cannot be updated by anonymous user
+        response = self.anonymous_client.put(url, {
+            'nickname': 'a new nickname',
+        })
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data['detail'], 'Authentication credentials were not provided.')
+
+        # profile can only be updated by user self
+        _, brunch_client = self.create_user_and_client('brunch')
+        response = brunch_client.put(url, {
+            'nickname': 'a new nickname',
+        })
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data['detail'], 'You do not have permission to access this object.')
+        pluto_pf.refresh_from_db()
+        self.assertEqual(pluto_pf.nickname, 'old nickname')
+
+        # update nickname successfully
+        response = pluto_client.put(url, {
+            'nickname': 'a new nickname',
+        })
+        self.assertEqual(response.status_code, 200)
+        pluto_pf.refresh_from_db()
+        self.assertEqual(pluto_pf.nickname, 'a new nickname')
+
+        # update avatar
+        response = pluto_client.put(url, {
+            'avatar': SimpleUploadedFile(
+                name='my-avatar.jpg',
+                content=str.encode('a fake image'),
+                content_type='image/jpeg',
+            ),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('my-avatar' in response.data['avatar'], True)
+        pluto_pf.refresh_from_db()
+        self.assertIsNotNone(pluto_pf.avatar)
+
 
 
 

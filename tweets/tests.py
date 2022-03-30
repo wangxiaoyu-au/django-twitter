@@ -1,6 +1,8 @@
 from testing.testcases import TestCase
 from datetime import timedelta
 from utils.time_helpers import utc_now
+from tweets.models import TweetPhoto
+from tweets.constants import TweetPhotoStatus
 
 
 # Create your tests here.
@@ -27,3 +29,12 @@ class TweetTests(TestCase):
         brunch = self.create_user('brunch')
         self.create_like(brunch, self.tweet)
         self.assertEqual(self.tweet.like_set.count(), 2)
+
+    def test_create_photo(self):
+        photo = TweetPhoto.objects.create(
+            tweet=self.tweet,
+            user=self.pluto,
+        )
+        self.assertEqual(photo.user, self.pluto)
+        self.assertEqual(photo.status, TweetPhotoStatus.PENDING)
+        self.assertEqual(self.tweet.tweetphoto_set.count(), 1)

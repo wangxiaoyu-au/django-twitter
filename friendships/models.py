@@ -1,8 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import pre_delete, post_save
+from friendships.listeners import invalidate_following_cache
 
 
-# Create your models here.
 class Friendship(models.Model):
     following_user = models.ForeignKey(
         User,
@@ -33,4 +34,9 @@ class Friendship(models.Model):
         unique_together = (('following_user_id', 'followed_user_id'),)
 
     def __str__(self):
-        return '{} is following {}.'.format(self.following_user,self.followed_user)
+        return '{} is following {}.'.format(self.following_user, self.followed_user)
+
+
+# hook up with listeners to invalidate cache
+pre_delete.connect(invalidate_following_cache, sender=Friendship)
+post_save.connect(invalidate_following_cache, sender=Friendship)

@@ -24,7 +24,7 @@ class FollowingUserIdSetMixin:
 class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
     # To get this account's all followers, it belongs to following friendship,
     # other users are 'following' me
-    user = UserSerializerForFriendship(source='following_user')
+    user = UserSerializerForFriendship(source='cached_following_user')
     has_followed = serializers.SerializerMethodField()
 
     class Meta:
@@ -38,7 +38,7 @@ class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
 class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
     # To get all user to which this account is following, it belongs to followed friendship,
     # other users are 'followed' by me
-    user = UserSerializerForFriendship(source='followed_user')
+    user = UserSerializerForFriendship(source='cached_followed_user')
     has_followed = serializers.SerializerMethodField()
 
     class Meta:

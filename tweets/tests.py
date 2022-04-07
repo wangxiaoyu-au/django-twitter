@@ -9,6 +9,7 @@ from tweets.constants import TweetPhotoStatus
 class TweetTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.pluto = self.create_user('pluto')
         self.tweet = self.create_tweet(self.pluto, content = 'We want PEACE, NO WAR!')
 

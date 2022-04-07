@@ -6,6 +6,7 @@ from notifications.models import Notification
 class NotificationServiceTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.pluto = self.create_user('pluto')
         self.brunch = self.create_user('brunch')
         self.pluto_tweet = self.create_tweet(self.pluto)

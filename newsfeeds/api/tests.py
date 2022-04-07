@@ -11,6 +11,7 @@ FOLLOW_URL = '/api/friendships/{}/follow/'
 class NewsFeedApiTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.pluto = self.create_user('pluto')
         self.pluto_client = APIClient()
         self.pluto_client.force_authenticate(self.pluto)
@@ -102,6 +103,34 @@ class NewsFeedApiTests(TestCase):
         self.assertEqual(response.data['has_next_page'], False)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], new_newsfeed.id)
+
+    def test_user_cache(self):
+        profile = self.brunch.profile
+        profile.nickname = 'Chubby'
+        profile.save()
+
+        self.assertEqual(self.pluto.username, 'pluto')
+        self.create_newsfeed(self.brunch, self.create_tweet(self.pluto))
+        self.create_newsfeed(self.brunch, self.create_tweet(self.brunch))
+
+        response = self.brunch_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['user']['username'], 'brunch')
+        self.assertEqual(results[0]['tweet']['user']['nickname'], 'Chubby')
+        self.assertEqual(results[1]['tweet']['user']['username'], 'pluto')
+
+        self.pluto.username = 'plutokitty'
+        self.pluto.save()
+        profile.nickname = 'PangPang'
+        profile.save()
+
+        response = self.brunch_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['user']['username'], 'brunch')
+        self.assertEqual(results[0]['tweet']['user']['nickname'], 'PangPang')
+        self.assertEqual(results[1]['tweet']['user']['username'], 'plutokitty')
+
+
 
 
 

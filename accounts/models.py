@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from accounts.listeners import user_changed, profile_changed
+from django.db.models.signals import post_save, pre_delete
 
 
 class UserProfile(models.Model):
@@ -19,12 +21,22 @@ class UserProfile(models.Model):
 
 
 def get_profile(user):
+    from accounts.services import UserService
+
     if hasattr(user, '_cached_user_profile'):
         return getattr(user, '_cached_user_profile')
-    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile = UserService.get_profile_through_cache(user.id)
     setattr(user, '_cached_user_profile', profile)
     return profile
 
 
 # to instant access the attribute User.profile
 User.profile = property(get_profile)
+
+# hook up with listeners to invalidate cache
+pre_delete.connect(user_changed, sender=User)
+post_save.connect(user_changed, sender=User)
+
+pre_delete.connect(profile_changed, sender=UserProfile)
+post_save.connect(profile_changed, sender=UserProfile)
+

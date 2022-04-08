@@ -10,6 +10,7 @@ NOTIFICATION_URL = '/api/notifications/'
 class NotificationTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.pluto, self.pluto_client = self.create_user_and_client('pluto')
         self.brunch, self.brunch_client = self.create_user_and_client('brunch')
         self.brunch_tweet = self.create_tweet(self.brunch)
@@ -34,6 +35,7 @@ class NotificationTests(TestCase):
 class NotificationApiTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.pluto, self.pluto_client = self.create_user_and_client('pluto')
         self.brunch, self.brunch_client = self.create_user_and_client('brunch')
         self.pluto_tweet = self.create_tweet(self.pluto)

@@ -14,6 +14,7 @@ NEWSFEED_LIST_API = '/api/newsfeeds/'
 class CommentApiTests(TestCase):
 
     def setUp(self):
+        self.clear_cache()
         self.pluto, self.pluto_client = self.create_user_and_client('pluto')
         self.brunch, self.brunch_client = self.create_user_and_client('brunch')
         self.tweet = self.create_tweet(self.pluto)

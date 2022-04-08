@@ -4,6 +4,9 @@ from testing.testcases import TestCase
 
 class UserProfileTests(TestCase):
 
+    def setUp(self):
+        self.clear_cache()
+
     def test_profile_property(self):
         pluto = self.create_user('pluto')
         self.assertEqual(UserProfile.objects.count(), 0)

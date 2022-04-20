@@ -5,6 +5,9 @@ from utils.time_helpers import utc_now
 from django.contrib.contenttypes.models import ContentType
 from tweets.constants import TweetPhotoStatus, TWEET_PHOTO_STATUS_CHOICES
 from utils.memcached_helper import MemcachedHelper
+from django.db.models.signals import post_save, pre_delete
+from tweets.listeners import push_tweet_to_cache
+from utils.listeners import invalidate_object_cache
 
 
 class Tweet(models.Model):
@@ -75,6 +78,11 @@ class TweetPhoto(models.Model):
 
     def __str__(self):
         return f'{self.tweet_id}: {self.file}'
+
+
+post_save.connect(invalidate_object_cache, sender=Tweet)
+pre_delete.connect(invalidate_object_cache, sender=Tweet)
+post_save.connect(push_tweet_to_cache, sender=Tweet)
 
 
 

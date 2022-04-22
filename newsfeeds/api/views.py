@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from newsfeeds.models import NewsFeed
+from newsfeeds.services import NewsFeedService
 from newsfeeds.api.serializers import NewsFeedSerializer
 from utils.paginations import EndlessPagination
 
@@ -10,14 +11,9 @@ class NewsFeedViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = EndlessPagination
 
-    def get_queryset(self):
-        # self-defined queryset, because only the current logged in user
-        # can check newsfeed, it can be
-        # self.request.user.newsfeed_set.all() either
-        return NewsFeed.objects.filter(user=self.request.user)
-
     def list(self, request):
-        newsfeed_page = self.paginate_queryset(self.get_queryset())
+        newsfeeds = NewsFeedService.get_cached_newsfeeds(request.user.id)
+        newsfeed_page = self.paginate_queryset(newsfeeds)
         serializer = NewsFeedSerializer(
             newsfeed_page,
             context={'request': request},

@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import caches
 from utils.redis_client import RedisClient
+from friendships.models import Friendship
 
 
 class TestCase(DjangoTestCase):
@@ -62,3 +63,9 @@ class TestCase(DjangoTestCase):
 
     def create_newsfeed(self, user, tweet):
         return NewsFeed.objects.create(user=user, tweet=tweet)
+
+    def create_friendship(self, following_user, followed_user):
+        return Friendship.objects.create(
+            following_user=following_user,
+            followed_user=followed_user,
+        )

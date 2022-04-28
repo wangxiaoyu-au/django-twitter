@@ -96,12 +96,3 @@ class TweetServiceTests(TestCase):
 
         tweets = TweetService.get_cached_tweets(self.pluto.id)
         self.assertEqual([t.id for t in tweets], [tweet2.id, tweet1.id])
-
-
-
-
-
-
-
-
-

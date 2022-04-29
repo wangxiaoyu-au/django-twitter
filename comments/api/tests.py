@@ -1,8 +1,6 @@
 from testing.testcases import TestCase
-from rest_framework.test import APIClient
 from comments.models import Comment
 from django.utils import timezone
-
 
 COMMENT_URL = '/api/comments/'
 COMMENT_DETAIL_URL = '/api/comments/{}/'
@@ -144,8 +142,40 @@ class CommentApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'][0]['tweet']['comments_count'], 2)
 
+    def test_comments_count_with_cache(self):
+        tweet_url = '/api/tweets/{}/'.format(self.tweet.id)
+        response = self.pluto_client.get(tweet_url)
+        self.assertEqual(self.tweet.comments_count, 0)
+        self.assertEqual(response.data['comments_count'], 0)
 
+        data = {'tweet_id': self.tweet.id, 'content': 'Meow meow'}
+        for i in range(2):
+            _, client = self.create_user_and_client('kitten{}'.format(i))
+            client.post(COMMENT_URL, data)
+            response = client.get(tweet_url)
+            self.assertEqual(response.data['comments_count'], i + 1)
+            self.tweet.refresh_from_db()
+            self.assertEqual(self.tweet.comments_count, i + 1)
 
+        comment_data = self.brunch_client.post(COMMENT_URL, data).data
+        response = self.brunch_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 3)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 3)
 
+        # update comment should not update comments_count
+        comment_url = '{}{}/'.format(COMMENT_URL, comment_data['id'])
+        response = self.brunch_client.put(comment_url, {'content': 'Meeeeeow'})
+        self.assertEqual(response.status_code, 200)
+        response = self.brunch_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 3)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 3)
 
-
+        # delete a comment
+        response = self.brunch_client.delete(comment_url)
+        self.assertEqual(response.status_code, 200)
+        response = self.pluto_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 2)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 2)

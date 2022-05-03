@@ -1,32 +1,23 @@
-from friendships.services import FriendshipService
 from newsfeeds.models import NewsFeed
 from twitter.cache import USER_NEWSFEEDS_PATTERN
 from utils.redis_helper import RedisHelper
+from newsfeeds.tasks import fanout_newsfeeds_task
 
 
 class NewsFeedService(object):
 
     @classmethod
     def fanout_to_followers(cls, tweet):
-        # incorrect implementation:
-        # put sql operation in for loop
-        # followers = FriendshipService.get_followers(tweet.user)
-        # for follower in followers:
-        #     NewsFeed.objects.create(user=follower, tweet=tweet)
-
-        # correct implementation:
-        # using bulk_create() 
-        newsfeeds = [
-            NewsFeed(user=follower, tweet=tweet) for
-            follower in FriendshipService.get_followers(tweet.user)
-        ]
-        newsfeeds.append(NewsFeed(user=tweet.user, tweet=tweet))
-        NewsFeed.objects.bulk_create(newsfeeds)
-
-        # bulk_create() cannot trigger post_save signal,
-        # that's why we need push newsfeeds one by one into cache manually
-        for newsfeed in newsfeeds:
-            cls.push_newsfeed_to_cache(newsfeed)
+        # in the message queue created by celery,
+        # we build a fanout task whose argument is tweet,
+        # any worker that is listening to this message queue
+        # has a chance to get this task,
+        # it would implement an asynchronous fanout_newsfeeds_task.
+        # Notice that .delay() can only accept arguments
+        # which can be serialized by celery,
+        # i.e., tweet.id is a valid argument, but tweet is not,
+        # cause celery doesn't know how to serialize Tweet.
+        fanout_newsfeeds_task.delay(tweet.id)
 
     @classmethod
     def get_cached_newsfeeds(cls, user_id):

@@ -29,13 +29,13 @@ class Friendship(models.Model):
         index_together = (
             # get all users that this account are following
             ('following_user_id', 'created_at'),
-            # get all users that being followed this account
+            # get all users that followed this account
             ('followed_user_id', 'created_at'),
         )
         unique_together = (('following_user_id', 'followed_user_id'),)
 
     def __str__(self):
-        return '{} is following {}.'.format(self.following_user, self.followed_user)
+        return '{} followed {}.'.format(self.following_user, self.followed_user)
 
     @property
     def cached_following_user(self):

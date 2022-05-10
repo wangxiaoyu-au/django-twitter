@@ -64,6 +64,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
+    'EXCEPTION_HANDLER': 'utils.ratelimit.exception_handler',
 }
 
 MIDDLEWARE = [
@@ -171,6 +172,12 @@ CACHES = {
         'TIMEOUT': 86400,
         'KEY_PREFIX': 'testing',
     },
+    'ratelimit': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 86400 * 7,
+        'KEY_PREFIX': 'rl',
+    }
 }
 
 # Redis
@@ -188,6 +195,12 @@ CELERY_QUEUES = (
     Queue('default', routing_key='default'),
     Queue('newsfeeds', routing_key='newsfeeds'),
 )
+
+# Rate Limiter
+RATELIMIT_USE_CACHE = 'ratelimit'
+# RATELIMIT_CACHE_PREFIX = 'rl' # the prefix has already set in CACHES
+RATELIMIT_ENABLE = not TESTING
+
 
 try:
     from .local_settings import *

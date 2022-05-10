@@ -19,6 +19,9 @@ from accounts.api.serializers import (
 )
 
 from utils.permissions import IsObjectOwner
+from django.utils.decorators import method_decorator
+from ratelimit.decorators import ratelimit
+
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -35,6 +38,7 @@ class AccountViewSet(viewsets.ViewSet):
     serializer_class = SignupSerializer
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def signup(self, request):
         """
         Using username, email, password to SIGN IN
@@ -55,6 +59,7 @@ class AccountViewSet(viewsets.ViewSet):
         }, status=201)
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def login(self, request):
         """
         Get username and password from request,
@@ -94,6 +99,7 @@ class AccountViewSet(viewsets.ViewSet):
         })
 
     @action(methods=['GET'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='GET', block=True))
     def login_status(self, request):
         """
         check the current status and details of the user
@@ -107,6 +113,7 @@ class AccountViewSet(viewsets.ViewSet):
         return Response(data)
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def logout(self, request):
         django_logout(request)
         return Response({'success': True})

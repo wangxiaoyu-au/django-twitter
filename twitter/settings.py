@@ -201,6 +201,9 @@ RATELIMIT_USE_CACHE = 'ratelimit'
 # RATELIMIT_CACHE_PREFIX = 'rl' # the prefix has already set in CACHES
 RATELIMIT_ENABLE = not TESTING
 
+# HBase
+HBASE_HOST = '127.0.0.1'
+
 
 try:
     from .local_settings import *

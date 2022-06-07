@@ -1,9 +1,10 @@
 from django_hbase.client import HBaseClient
 from .exceptions import EmptyColumnError, BadRowKeyError
 from .fields import HBaseField, IntegerField, TimestampField
+from django.conf import settings
 
 
-class HBaseModel:
+class  HBaseModel:
 
     class Meta:
         table_name = None
@@ -12,7 +13,7 @@ class HBaseModel:
     def __init__(self, **kwargs):
         for key, filed in self.get_field_hash().items():
             value = kwargs.get(key)
-            setattr(self.key, value)
+            setattr(self, key, value)
 
     @classmethod
     def init_from_row(cls, row_key, row_data):
@@ -40,7 +41,8 @@ class HBaseModel:
         value = str(value)
         if isinstance(field, IntegerField):
             while len(value) < 16:
-                value = value + '0'
+                # Notice: it must be '0' before value, cannot be value + '0'
+                value = '0' + value
         if field.reverse:
             value = value[::-1]
         return value
@@ -64,7 +66,7 @@ class HBaseModel:
         """
         field_hash = cls.get_field_hash()
         values = []
-        for key, field in field_hash.items:
+        for key, field in field_hash.items():
             if field.column_family:
                 continue
             value = data.get(key)
@@ -74,7 +76,7 @@ class HBaseModel:
             if ':' in value:
                 raise BadRowKeyError(f"{key} should not contain ':' in value: {value}")
             values.append(value)
-        return bytes(':'.join(values), encodings='utf-8')
+        return bytes(':'.join(values), encoding='utf-8')
 
     @classmethod
     def deserialize_row_key(cls, row_key):
@@ -118,9 +120,7 @@ class HBaseModel:
     @classmethod
     def get_table(cls):
         conn = HBaseClient.get_connection()
-        if not cls.Meta.table_name:
-            raise NotImplementedError('Missing table_name in HBaseModel Meta class.')
-        return conn.table(cls.Meta.table_name)
+        return conn.table(cls.get_table_name())
 
     def save(self):
         row_data = self.serialize_row_data(self.__dict__)
@@ -143,3 +143,35 @@ class HBaseModel:
         instance = cls(**kwargs)
         instance.save()
         return instance
+
+    @classmethod
+    def get_table_name(cls):
+        if not cls.Meta.table_name:
+            raise NotImplementedError('Missing table_name in HBaseModel meta class')
+        if settings.TESTING:
+            return f'test_{cls.Meta.table_name}'
+        return cls.Meta.table_name
+
+    @classmethod
+    def create_table(cls):
+        if not settings.TESTING:
+            raise Exception('You cannot create table outside the unit tests')
+        conn = HBaseClient.get_connection()
+
+        # decode() is to  convert table names from bytes to string
+        tables = [table.decode('utf-8') for table in conn.tables()]
+        if cls.get_table_name() in tables:
+            return
+        column_families = {
+            field.column_family: dict()
+            for key, field in cls.get_field_hash().items()
+            if field.column_family is not None
+        }
+        conn.create_table(cls.get_table_name(), column_families)
+
+    @classmethod
+    def drop_table(cls):
+        if not settings.TESTING:
+            raise Exception('You cannot drop table outside the unit tests')
+        conn = HBaseClient.get_connection()
+        conn.delete_table(cls.get_table_name(), True)

@@ -90,6 +90,64 @@ class HBaseTests(TestCase):
             self.assertEqual(str(e), 'created_at is missing in row key.')
         self.assertEqual(exception_raised, True)
 
+    def test_filter(self):
+        HBaseFollowing.create(following_user_id=1, followed_user_id=2, created_at=self.ts_now)
+        HBaseFollowing.create(following_user_id=1, followed_user_id=3, created_at=self.ts_now)
+        HBaseFollowing.create(following_user_id=1, followed_user_id=4, created_at=self.ts_now)
+
+        followings = HBaseFollowing.filter(prefix=(1, None, None))
+        self.assertEqual(3, len(followings))
+        self.assertEqual(followings[0].following_user_id, 1)
+        self.assertEqual(followings[0].followed_user_id, 2)
+        self.assertEqual(followings[1].following_user_id, 1)
+        self.assertEqual(followings[1].followed_user_id, 3)
+        self.assertEqual(followings[2].following_user_id, 1)
+        self.assertEqual(followings[2].followed_user_id, 4)
+
+        # test limit
+        results = HBaseFollowing.filter(prefix=(1, None, None), limit=1)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].followed_user_id, 2)
+
+        results = HBaseFollowing.filter(prefix=(1, None, None), limit=2)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].followed_user_id, 2)
+        self.assertEqual(results[1].followed_user_id, 3)
+
+        results = HBaseFollowing.filter(prefix=(1, None, None), limit=4)
+        self.assertEqual(len(results), 3)
+        self.assertEqual(results[0].followed_user_id, 2)
+        self.assertEqual(results[1].followed_user_id, 3)
+        self.assertEqual(results[2].followed_user_id, 4)
+
+        results = HBaseFollowing.filter(start=(1, results[1].created_at, None), limit=2)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].followed_user_id, 3)
+        self.assertEqual(results[1].followed_user_id, 4)
+
+        # test reverse
+        results = HBaseFollowing.filter(prefix=(1, None, None), limit=2, reverse=True)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].followed_user_id, 4)
+        self.assertEqual(results[1].followed_user_id, 3)
+
+        results = HBaseFollowing.filter(start=(1, results[1].created_at, None), limit=2, reverse=True)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].followed_user_id, 3)
+        self.assertEqual(results[1].followed_user_id, 2 )
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

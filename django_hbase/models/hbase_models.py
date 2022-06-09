@@ -41,6 +41,10 @@ class  HBaseModel:
         value = str(value)
         if isinstance(field, IntegerField):
             while len(value) < 16:
+                #
+                # In lexicographical order, some undesired cases like 1 10 2 may appear,
+                # to stave off such cases, we can fix the length of value as 16 digits,
+                # by complementing 0 from the high-order
                 # Notice: it must be '0' before value, cannot be value + '0'
                 value = '0' + value
         if field.reverse:
@@ -57,7 +61,7 @@ class  HBaseModel:
         return value
 
     @classmethod
-    def serialize_row_key(cls, data):
+    def serialize_row_key(cls, data, is_prefix=False):
         """
         serialize dict to bytes (not str):
         {key1: val1} => b'val1'
@@ -71,12 +75,24 @@ class  HBaseModel:
                 continue
             value = data.get(key)
             if value is None:
-                raise BadRowKeyError(f"{key} is missing in row key.")
+                if not is_prefix:
+                    raise BadRowKeyError(f"{key} is missing in row key.")
+                break
             value = cls.serialize_field(field, value)
             if ':' in value:
                 raise BadRowKeyError(f"{key} should not contain ':' in value: {value}")
             values.append(value)
         return bytes(':'.join(values), encoding='utf-8')
+
+    @classmethod
+    def serialize_row_key_from_tuple(cls, row_key_tuple):
+        if row_key_tuple is None:
+            return None
+        data = {
+            key: value
+            for key, value in zip(cls.Meta.row_key, row_key_tuple)
+        }
+        return cls.serialize_row_key(data, is_prefix=True)
 
     @classmethod
     def deserialize_row_key(cls, row_key):
@@ -143,6 +159,24 @@ class  HBaseModel:
         instance = cls(**kwargs)
         instance.save()
         return instance
+
+    @classmethod
+    def filter(cls, start=None, stop=None, prefix=None, limit=None, reverse=False):
+        # serialize tuple to string
+        row_start = cls.serialize_row_key_from_tuple(start)
+        row_stop = cls.serialize_row_key_from_tuple(stop)
+        row_prefix = cls.serialize_row_key_from_tuple(prefix)
+
+        # scan table
+        table = cls.get_table()
+        rows = table.scan(row_start, row_stop, row_prefix, limit=limit, reverse=reverse)
+
+        # deserialize to instance list
+        results = []
+        for row_key, row_data in rows:
+            instance = cls.init_from_row(row_key, row_data)
+            results.append(instance)
+        return results
 
     @classmethod
     def get_table_name(cls):

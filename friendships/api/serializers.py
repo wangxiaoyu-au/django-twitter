@@ -4,12 +4,24 @@ from friendships.models import Friendship
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from friendships.services import FriendshipService
+from accounts.services import UserService
 
 
-class FollowingUserIdSetMixin:
+class BaseFriendshipSerializer(serializers.Serializer):
+    user = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
+    has_followed = serializers.SerializerMethodField()
 
-    @property
-    def following_user_id_set(self: serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        pass
+
+    def create(self, validated_data):
+        pass
+
+    def get_user_id(self, obj):
+        raise NotImplementedError
+
+    def _get_following_user_id_set(self):
         if self.context['request'].user.is_anonymous:
             return {}
         if hasattr(self, '_cached_following_user_id_set'):
@@ -20,33 +32,25 @@ class FollowingUserIdSetMixin:
         setattr(self, '_cached_following_user_id_set', user_id_set)
         return user_id_set
 
-
-class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    # To get this account's all followers, it belongs to following friendship,
-    # other users are 'following' me
-    user = UserSerializerForFriendship(source='cached_following_user')
-    has_followed = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Friendship
-        fields = ('user', 'created_at', 'has_followed')
-
     def get_has_followed(self, obj):
-        return obj.following_user_id in self.following_user_id_set
+        return self.get_user_id(obj) in self._get_following_user_id_set()
+
+    def get_user(self, obj):
+        user = UserService.get_user_by_id(self.get_user_id(obj))
+        return UserSerializerForFriendship(user).data
+
+    def get_created_at(self, obj):
+        return obj.created_at
 
 
-class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    # To get all user to which this account is following, it belongs to followed friendship,
-    # other users are 'followed' by me
-    user = UserSerializerForFriendship(source='cached_followed_user')
-    has_followed = serializers.SerializerMethodField()
+class FollowerSerializer(BaseFriendshipSerializer):
+    def get_user_id(self, obj):
+        return obj.following_user_id
 
-    class Meta:
-        model = Friendship
-        fields = ('user', 'created_at', 'has_followed')
 
-    def get_has_followed(self, obj):
-        return obj.followed_user_id in self.following_user_id_set
+class FollowingSerializer(BaseFriendshipSerializer):
+    def get_user_id(self, obj):
+        return obj.followed_user_id
 
 
 class FriendshipSerializerForCreate(serializers.ModelSerializer):
@@ -76,8 +80,9 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        return Friendship.objects.create(
-            following_user_id=validated_data['following_user_id'],
-            followed_user_id=validated_data['followed_user_id'],
+        following_user_id = validated_data['following_user_id'],
+        followed_user_id = validated_data['followed_user_id'],
+        return FriendshipService.follow(
+            following_user_id=following_user_id,
+            followed_user_id=followed_user_id,
         )
-

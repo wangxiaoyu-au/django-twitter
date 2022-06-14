@@ -13,7 +13,7 @@ class RedisHelper:
 
         # cache REDIS_LIST_LENGTH_LIMIT data records at most,
         # exceeds this size, to require data from database directly
-        for obj in objects[:settings.REDIS_LIST_LENGTH_LIMIT]:
+        for obj in objects:
             serialized_data = DjangoModelSerializer.serialize(obj)
             serialized_list.append(serialized_data)
 
@@ -23,6 +23,7 @@ class RedisHelper:
 
     @classmethod
     def download_objects_from_cache(cls, key, queryset):
+        queryset = queryset[:settings.REDIS_LIST_LENGTH_LIMIT]
         conn = RedisClient.get_connection()
 
         if conn.exists(key):
@@ -41,6 +42,7 @@ class RedisHelper:
 
     @classmethod
     def push_object(cls, key, obj, queryset):
+        queryset = queryset[:settings.REDIS_LIST_LENGTH_LIMIT]
         conn = RedisClient.get_connection()
         if not conn.exists(key):
             cls._upload_objects_to_cache(key, queryset)
@@ -66,7 +68,6 @@ class RedisHelper:
         conn.expire(key, settings.REDIS_KEY_EXPIRE_TIME)
         return getattr(obj, attr)
 
-
     @classmethod
     def decr_count(cls, obj, attr):
         conn = RedisClient.get_connection()
@@ -78,7 +79,6 @@ class RedisHelper:
         conn.set(key, getattr(obj, attr))
         conn.expire(key, settings.REDIS_KEY_EXPIRE_TIME)
         return getattr(obj, attr)
-
 
     @classmethod
     def get_count(cls, obj, attr):

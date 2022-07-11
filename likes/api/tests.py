@@ -13,7 +13,7 @@ NEWSFEED_LIST_API = '/api/newsfeeds/'
 class LikeApiTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(LikeApiTests, self).setUp()
         self.pluto, self.pluto_client = self.create_user_and_client('pluto')
         self.brunch, self.brunch_client = self.create_user_and_client('brunch')
 

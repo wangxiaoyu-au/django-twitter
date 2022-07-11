@@ -14,7 +14,7 @@ FOLLOW_URL = '/api/friendships/{}/follow/'
 class NewsFeedApiTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(NewsFeedApiTests, self).setUp()
         self.pluto = self.create_user('pluto')
         self.pluto_client = APIClient()
         self.pluto_client.force_authenticate(self.pluto)

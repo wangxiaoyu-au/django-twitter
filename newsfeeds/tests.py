@@ -9,7 +9,7 @@ from newsfeeds.tasks import fanout_newsfeeds_main_task
 class NewsFeedServiceTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(NewsFeedServiceTests, self).setUp()
         self.pluto = self.create_user('pluto')
         self.brunch = self.create_user('brunch')
 
@@ -55,7 +55,7 @@ class NewsFeedServiceTests(TestCase):
 class NewsFeedTaskTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(NewsFeedTaskTests, self).setUp()
         self.pluto = self.create_user('pluto')
         self.brunch = self.create_user('brunch')
 

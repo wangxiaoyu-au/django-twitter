@@ -10,6 +10,8 @@ from django.core.cache import caches
 from utils.redis_client import RedisClient
 from friendships.models import Friendship
 from django_hbase.models import HBaseModel
+from friendships.services import FriendshipService
+from gatekeeper.models import GateKeeper
 
 
 class TestCase(DjangoTestCase):
@@ -34,6 +36,9 @@ class TestCase(DjangoTestCase):
     def clear_cache(self):
         RedisClient.clear()
         caches['testing'].clear()
+        # GateKeeper.turn_on('switch_newsfeed_to_hbase')
+        GateKeeper.turn_on('switch_friendship_to_hbase')
+
 
     @property
     def anonymous_client(self):
@@ -83,7 +88,4 @@ class TestCase(DjangoTestCase):
         return NewsFeed.objects.create(user=user, tweet=tweet)
 
     def create_friendship(self, following_user, followed_user):
-        return Friendship.objects.create(
-            following_user=following_user,
-            followed_user=followed_user,
-        )
+        return FriendshipService.follow(following_user.id, followed_user.id)

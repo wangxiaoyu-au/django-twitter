@@ -62,20 +62,9 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
         fields = ('following_user_id', 'followed_user_id')
 
     def validate(self, attrs):
-        if not User.objects.filter(id=attrs['followed_user_id']).exists():
-            raise ValidationError({
-                'message': 'You cannot follow a non-existent user.',
-            })
         if attrs['following_user_id'] == attrs['followed_user_id']:
             raise ValidationError({
-                'message': 'You cannot follow yourself.',
-            })
-        if Friendship.objects.filter(
-            following_user_id=attrs['following_user_id'],
-            followed_user_id=attrs['followed_user_id'],
-        ).exists():
-            raise ValidationError({
-                'message': 'You have already followed this user.',
+                'message': 'following_user_id should be different from followed_user_id.'
             })
         return attrs
 

@@ -2,7 +2,7 @@ from testing.testcases import TestCase
 from utils.redis_client import RedisClient
 
 
-class UtilsTestS(TestCase):
+class UtilsTests(TestCase):
 
     def setUp(self):
         self.clear_cache()

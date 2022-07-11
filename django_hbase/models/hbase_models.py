@@ -209,3 +209,9 @@ class  HBaseModel:
             raise Exception('You cannot drop table outside the unit tests')
         conn = HBaseClient.get_connection()
         conn.delete_table(cls.get_table_name(), True)
+
+    @classmethod
+    def delete(cls,**kwargs):
+        row_key = cls.serialize_row_key(kwargs)
+        table = cls.get_table()
+        return table.delete(row_key)

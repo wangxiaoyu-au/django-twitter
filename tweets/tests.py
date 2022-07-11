@@ -13,7 +13,7 @@ from twitter.cache import USER_TWEETS_PATTERN
 class TweetTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(TweetTests, self).setUp()
         self.pluto = self.create_user('pluto')
         self.tweet = self.create_tweet(self.pluto, content='We want PEACE, NO WAR!')
 
@@ -60,7 +60,7 @@ class TweetTests(TestCase):
 class TweetServiceTests(TestCase):
 
     def setUp(self):
-        self.clear_cache()
+        super(TweetServiceTests, self).setUp()
         self.pluto = self.create_user('pluto')
 
     def test_get_user_tweets(self):

@@ -1,10 +1,11 @@
-from utils.redis_client import  RedisClient
+from utils.redis_client import RedisClient
 
 
 class GateKeeper(object):
 
     @classmethod
     def get(cls, gk_name):
+        # for high efficiency, storing GateKeeper model in Redis
         conn = RedisClient.get_connection()
         name = f'gatekeeper:{gk_name}'
         if not conn.exists(name):

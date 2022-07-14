@@ -151,8 +151,8 @@ class  HBaseModel:
     def get(cls, **kwargs):
         row_key = cls.serialize_row_key(kwargs)
         table = cls.get_table()
-        row = table.row(row_key)
-        return cls.init_from_row(row_key, row)
+        row_data = table.row(row_key)
+        return cls.init_from_row(row_key, row_data)
 
     @classmethod
     def create(cls, **kwargs):

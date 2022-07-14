@@ -93,16 +93,23 @@ class FriendshipService(object):
             created_at=now,
         )
 
+    @classmethod
+    def get_follow_instance(cls, following_user_id, followed_user_id):
+        followings = HBaseFollowing.filter(prefix=(following_user_id, None))
+        for follow in followings:
+            if follow.followed_user_id == followed_user_id:
+                return follow
+        return None
 
+    @classmethod
+    def has_followed(cls, following_user_id, followed_user_id):
+        if following_user_id == followed_user_id:
+            return False
+        if not GateKeeper.is_switch_on('switch_friendship_to_hbase'):
+            return Friendship.objects.filter(
+                following_user_id=following_user_id,
+                followed_user_id=followed_user_id,
+            ).exists()
 
-
-
-
-
-
-
-
-
-
-
-
+        instance = cls.get_follow_instance(following_user_id, followed_user_id)
+        return instance is not None

@@ -134,7 +134,7 @@ class HBaseTests(TestCase):
         results = HBaseFollowing.filter(start=(1, results[1].created_at, None), limit=2, reverse=True)
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].followed_user_id, 3)
-        self.assertEqual(results[1].followed_user_id, 2 )
+        self.assertEqual(results[1].followed_user_id, 2  )
 
 
 

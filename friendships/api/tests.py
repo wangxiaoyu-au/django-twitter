@@ -27,10 +27,10 @@ class FriendshipApiTests(TestCase):
         # create followings and followers for brunch
         for i in range(2):
             follower = self.create_user('brunch_follower{}'.format(i))
-            Friendship.objects.create(following_user=follower, followed_user=self.brunch)
+            self.create_friendship(follower, self.brunch)
         for i in range(3):
             following = self.create_user('brunch_following{}'.format(i))
-            Friendship.objects.create(following_user=self.brunch, followed_user=following)
+            self.create_friendship(self.brunch, following)
 
     def test_follow(self):
         url = FOLLOW_URL.format(self.pluto.id)

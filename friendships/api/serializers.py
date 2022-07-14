@@ -32,6 +32,9 @@ class BaseFriendshipSerializer(serializers.Serializer):
         setattr(self, '_cached_following_user_id_set', user_id_set)
         return user_id_set
 
+    def get_user_id(self, obj):
+        raise NotImplementedError
+
     def get_has_followed(self, obj):
         return self.get_user_id(obj) in self._get_following_user_id_set()
 
@@ -53,35 +56,31 @@ class FollowingSerializer(BaseFriendshipSerializer):
         return obj.followed_user_id
 
 
-class FriendshipSerializerForCreate(serializers.ModelSerializer):
+class FriendshipSerializerForCreate(serializers.Serializer):
     following_user_id = serializers.IntegerField()
     followed_user_id = serializers.IntegerField()
 
-    class Meta:
-        model = Friendship
-        fields = ('following_user_id', 'followed_user_id')
-
     def validate(self, attrs):
-        if not User.objects.filter(id=attrs['followed_user_id']).exists():
-            raise ValidationError({
-                'message': 'You cannot follow a non-existent user.',
-            })
+        # if not User.objects.filter(id=attrs['followed_user_id']).exists():
+        #     raise ValidationError({
+        #         'message': 'You cannot follow a non-existent user.',
+        #     })
         if attrs['following_user_id'] == attrs['followed_user_id']:
             raise ValidationError({
                 'message': 'You cannot follow yourself.',
             })
-        if Friendship.objects.filter(
-            following_user_id=attrs['following_user_id'],
-            followed_user_id=attrs['followed_user_id'],
-        ).exists():
-            raise ValidationError({
-                'message': 'You have already followed this user.',
-            })
+        # if Friendship.objects.filter(
+        #     following_user_id=attrs['following_user_id'],
+        #     followed_user_id=attrs['followed_user_id'],
+        # ).exists():
+        #     raise ValidationError({
+        #         'message': 'You have already followed this user.',
+        #     })
         return attrs
 
     def create(self, validated_data):
-        following_user_id = validated_data['following_user_id'],
-        followed_user_id = validated_data['followed_user_id'],
+        following_user_id = validated_data['following_user_id']
+        followed_user_id = validated_data['followed_user_id']
         return FriendshipService.follow(
             following_user_id=following_user_id,
             followed_user_id=followed_user_id,

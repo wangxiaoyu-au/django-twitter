@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from friendships.api.paginations import CustomizedPagination
 from django.utils.decorators import method_decorator
 from ratelimit.decorators import ratelimit
+from friendships.services import FriendshipService
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
@@ -40,13 +41,16 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
     def follow(self, request, pk):
-        if Friendship.objects.filter(following_user=request.user,followed_user=pk).exists():
+        self.get_object()
+        if FriendshipService.has_followed(request.user.id, int(pk)):
             # if multiple clicks on 'follow' button happened at the front end,
             # process it silently
             return Response({
-                'success': True,
-                'duplicated': True,
-            }, status=status.HTTP_201_CREATED)
+                'success': False,
+                'message': 'Please check input.',
+                'errors': [{'pk': f'You has followed user {pk}'}],
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         #  POST /api/friendships/<pk>/follow/
         serializer = FriendshipSerializerForCreate(data={
             'following_user_id': request.user.id,
@@ -57,11 +61,8 @@ class FriendshipViewSet(viewsets.GenericViewSet):
                 'success': False,
                 'errors': serializer.errors,
             }, status=status.HTTP_400_BAD_REQUEST)
-        instance = serializer.save()
-        return Response(
-            FollowingSerializer(instance, context={'request': request}).data,
-            status=status.HTTP_201_CREATED,
-        )
+        serializer.save()
+        return Response({'success': True}, status=status.HTTP_201_CREATED)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
@@ -76,7 +77,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         deleted, _ = Friendship.objects.filter(
             following_user=request.user,
-            followed_user=unfollow_user,
+            followed_user=pk,
         ).delete()
         return Response({'success': True, 'deleted': deleted})
 
